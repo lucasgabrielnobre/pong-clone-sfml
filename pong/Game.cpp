@@ -18,3 +18,8 @@ Game::Game(const std::string& filename)
 	}
 
 }
+
+void Game::run()
+{
+
+}

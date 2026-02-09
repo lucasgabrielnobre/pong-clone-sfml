@@ -1,0 +1,7 @@
+Pong
+
+três cenas: 
+	inicial com botões de single e multiplayer
+	tela de gameplay
+	tela de vencedor com botões de menu e recomeçar
+
