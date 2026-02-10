@@ -49,8 +49,9 @@ void EntityManager::update()
 
 std::shared_ptr<Entity> EntityManager::addEntity(const std::string& tag)
 {
-	auto entity = std::shared_ptr<Entity>(new Entity(m_totalEntities++, tag));
-	m_entities.push_back(entity);
+	//auto entity = std::shared_ptr<Entity>(new Entity(m_totalEntities++, tag)); -> duas alocações, duas construções, make_shared é melhor
+	auto entity = std::shared_ptr<Entity>(std::make_shared<Entity>(m_totalEntities++, tag));
+	m_entitiesToAdd.push_back(entity);
 	return entity;
 }
 
@@ -59,7 +60,7 @@ const EntityVec& EntityManager::getEntities() const
 	return m_entities;
 }
 
-const EntityVec& EntityManager::getEntites(const std::string& tag)
+const EntityVec& EntityManager::getEntities(const std::string& tag)
 {
 	return m_entityMap[tag];
 }

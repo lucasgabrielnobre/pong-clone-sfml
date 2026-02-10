@@ -5,3 +5,6 @@ três cenas:
 	tela de gameplay
 	tela de vencedor com botões de menu e recomeçar
 
+Window W H Fullscren(bool)
+Player W, H, CW, CH, FR, FG, FB, OR, OG, OB, OT, S
+Ball   SR, CR, FR, FG, FB, OR, OG, OB, OT, V, IS

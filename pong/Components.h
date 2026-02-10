@@ -45,8 +45,4 @@ public:
 	bool down = false;
 };
 
-class CScore : public Component
-{
-public:
-	int score[2];
-};
+

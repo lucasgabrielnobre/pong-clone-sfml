@@ -1,5 +1,3 @@
-#include <iostream>
-#include <SFML/Graphics.hpp>
 #include "Game.h"
 
 int main()
@@ -7,4 +5,6 @@ int main()
 	Game g("config.txt");
 
 	g.run();
+
+	std::cin.get();
 }

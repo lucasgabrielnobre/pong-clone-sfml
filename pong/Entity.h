@@ -11,8 +11,7 @@ using ComponentTuple = std::tuple<
 	CCollision,
 	CCircle,
 	CRectangle,
-	CInput,
-	CScore
+	CInput
 >;
 
 class Entity
@@ -21,17 +20,25 @@ class Entity
 	ComponentTuple m_components;
 	bool           m_alive = true;
 	std::string    m_tag     = "default";
-	int            m_id	   = 0;
+	size_t            m_id	   = 0;
 public:
 	Entity() = default;
 	Entity(size_t id, const std::string& tag);
 	~Entity();
 
 	template <typename T>
-	T& get() const; // const -> não muda o contéudo da Classe
-	template <typename T, typename... TArgs>
-	// ... : 0 ou vários tipos de argumentos
-	T& add(TArgs&&... mArgs);
+	T& get()
+	{
+		return std::get<T>(m_components);
+	};
+	template <typename T, typename... TArgs> // ... : 0 ou vários tipos de argumentos
+	T& add(TArgs&&... mArgs)
+	{
+		auto& component = std::get<T>(m_components);
+		component = T(std::forward<TArgs>(mArgs)...);
+		component.exits = true;
+		return component;
+	}
 	/*
 			&&    : evita cópias(recebe tanto como lvalue quanto como rvalue)
 			mArgs : os argumentos em si
