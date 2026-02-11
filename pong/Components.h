@@ -24,6 +24,10 @@ public:
 	sf::RectangleShape shape;
 	CRectangle() = default;
 	CRectangle(Vec2f size, const sf::Color& fill, const sf::Color& outline, float thickness);
+	Vec2f top() const;
+	Vec2f right() const;
+	Vec2f bottom() const;
+	Vec2f left() const;
 };
 class CCircle: public Component
 {

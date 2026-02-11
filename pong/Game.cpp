@@ -7,8 +7,18 @@ Game::Game(const std::string& config) :
 	m_text(m_font, "default", 24)
 {
 	init(config);
-	spawnPlayers(true); // true => two players
-	spawnBall();
+	gameStart();
+}
+
+int randMinMax(int min, int max)
+{
+	// Garante que min <= max
+	if (min > max) {
+		std::swap(min, max);
+	}
+
+	// (max - min + 1) ex com [50, 100] -> rand() % 51, ou seja, vai de 0 a 50. após isso, somar o min (50), assim irá entre min, max.
+	return min + (rand() % (max - min + 1));
 }
 
 void Game::init(const std::string& config)
@@ -37,7 +47,7 @@ void Game::init(const std::string& config)
 		}
 		if (header == "Player")
 		{
-			PlayerConfig temp;
+			PlayerConfig temp{};
 			fin >> temp.W;
 			fin >> temp.H;
 			fin >> temp.CW;
@@ -54,7 +64,7 @@ void Game::init(const std::string& config)
 		}
 		if (header == "Ball")
 		{
-			BallConfig temp;
+			BallConfig temp{};
 			fin >> temp.SR;
 			fin >> temp.CR;
 			fin >> temp.FR;
@@ -105,14 +115,26 @@ void Game::spawnBall()
 
 	Vec2f center(m_window.getSize().x / 2.0f, m_window.getSize().y / 2.0f);
 
-	b->add<CTransform>(center, Vec2f(0.0f, 0.0f), 0.0f);
+	// A bola pode começar voando em quatro direções ( graus: 45, 135, 225, 315 )
+	// para tanto, usarei de vetores (1,1) , (-1,1), (1,-1), (-1,1), correspondente aos ângulos.
+	srand((unsigned int)time(0)); // garante a aleatoridade do rand()
+	
+	Vec2f initialVelocity((float)randMinMax(0, 1), (float)randMinMax(0,1));
+	initialVelocity.x = initialVelocity.x == 0.0f ? -1.0f : 1.0f;
+	initialVelocity.y = initialVelocity.y == 0.0f ? -1.0f : 1.0f;
+
+	initialVelocity.normalize(); // garante que a hiponetusa tenha tamanho 1.
+
+	b->add<CTransform>(center, initialVelocity * bC.S, 0.0f);
 	sf::Color fill((uint8_t)bC.FR, (uint8_t)bC.FG, (uint8_t)bC.FB);
 	sf::Color out((uint8_t)bC.OR, (uint8_t)bC.OG, (uint8_t)bC.OB);
-	//b->add<CCircle>((float)bC.SR, (size_t)bC.V, fill, out,(float)bC.OT);
+	b->add<CCircle>((float)bC.SR, (size_t)bC.V, fill, out,(float)bC.OT);
 }
 
 void Game::gameStart()
 {
+	spawnPlayers(false); // true => two players
+	spawnBall();
 }
 
 void Game::sMovement()
@@ -120,20 +142,65 @@ void Game::sMovement()
 	for (auto& p : players())
 	{
 		auto& input = p->get<CInput>();
+		auto& rect = p->get<CRectangle>();
 		auto& transform = p->get<CTransform>();
 		if (input.exits) // se é player
 		{
-			float movement = (float)(input.down - input.up);
+			float movement = (float)(input.down - input.up) * m_playerConfig.S;
 			
-			transform.velocity.y = movement * m_playerConfig.S;
+			if (movement < 0) // para cima
+			{
+				if (rect.top().y + movement < 0) // se passar do topo da tela
+				{
+					transform.pos = Vec2f(transform.pos.x, rect.shape.getSize().y / 2);
+					movement = 0;
+				}
+			}
+			else // para baixo
+			{
+				if (rect.bottom().y + movement > m_window.getSize().y) // se passar do fim da tela
+				{
+					transform.pos = Vec2f(transform.pos.x, m_window.getSize().y - rect.shape.getSize().y / 2);
+					movement = 0;
+				}
+			}
+			transform.velocity.y = movement;
 		}
 		else // se é bot
-		{
-
+		{    
+			auto ballT = ball()->get<CTransform>();
+			if (ballT.pos.y > transform.pos.y) // se a bola tiver para baixo do bot
+			{
+				if (std::abs(ballT.pos.y - transform.pos.y) > m_playerConfig.S)
+				{
+					transform.velocity.y = m_playerConfig.S;
+				}
+				else
+				{
+					transform.velocity.y = std::abs(ballT.pos.y - transform.pos.y);
+				}
+			}
+			else if (ballT.pos.y < transform.pos.y) // se tiver para cima
+			{
+				if (std::abs(ballT.pos.y - transform.pos.y) > m_playerConfig.S)
+				{
+					transform.velocity.y = -m_playerConfig.S;
+				}
+				else
+				{
+					transform.velocity.y = -std::abs(ballT.pos.y - transform.pos.y);
+				}
+			}
+			else
+			{
+				transform.velocity.y = 0;
+			}
 		}
 
 		transform.pos += transform.velocity;
 	}
+	auto& ballT = ball()->get<CTransform>();
+	ballT.pos += ballT.velocity;
 }
 
 void Game::sUserInput()
@@ -151,7 +218,11 @@ void Game::sUserInput()
 		*/
 		
 		std::shared_ptr<Entity> playerOne = players().front();
-		std::shared_ptr<Entity> playerTwo = players().back();
+		std::shared_ptr<Entity> playerTwo;
+		if (players().back()->get<CInput>().exits)
+			playerTwo = players().back();
+		else
+			playerTwo = playerOne;
 
 		if (event->is<sf::Event::Closed>())
 		{
