@@ -40,11 +40,6 @@ public:
 	Vec2f bottom() const;
 	Vec2f left() const;
 };
-class CCollision : public Component
-{
-public:
-	Vec2f hitBox;
-};
 
 class CInput : public Component
 {

@@ -44,6 +44,25 @@ void Game::init(const std::string& config)
 			m_window.setKeyRepeatEnabled(false);
 
 		}
+		if (header == "Font")
+		{
+			std::string fontPath;
+			int textSize;
+			int fR, fG, fB;
+
+			fin >> fontPath;
+			fin >> textSize;
+			fin >> fR;
+			fin >> fG;
+			fin >> fB;
+
+			if (!m_font.openFromFile(fontPath)) // a mensagem de erro já existe na função openFromFile
+				std::exit(-1);
+		
+			m_text.setCharacterSize(textSize);
+			std::cout << fR << fB << fG << std::endl;
+			m_text.setFillColor(sf::Color((uint8_t)fR, (uint8_t)fB, (uint8_t)fG));
+		}
 		if (header == "Player")
 		{
 			PlayerConfig temp{};
@@ -115,7 +134,7 @@ void Game::spawnBall()
 	Vec2f center(m_window.getSize().x / 2.0f, m_window.getSize().y / 2.0f);
 
 	// A bola pode começar voando em quatro direções ( graus: 45, 135, 225, 315 )
-	// para tanto, usarei de vetores (1,1) , (-1,1), (1,-1), (-1,1), correspondente aos ângulos.
+	// para tanto, usa-se de vetores (1,1) , (-1,1), (1,-1), (-1,1), correspondente aos ângulos.
 	srand((unsigned int)time(0)); // garante a aleatoridade do rand()
 	
 	Vec2f initialVelocity((float)randMinMax(0, 1), (float)randMinMax(0,1));
@@ -134,6 +153,16 @@ void Game::spawnBall()
 void Game::gameStart()
 {
 	m_gameState = Gameplay;
+
+	if (!players().empty() && ball()->isAlive())
+	{
+		for (auto p : players())
+		{
+			p->destroy();
+		}
+		ball()->destroy();
+	}
+
 	spawnPlayers(false); // true => two players
 	spawnBall();
 }
@@ -281,9 +310,39 @@ void Game::sCollision()
 	{
 		bTransform.velocity.y *= -1.0f;
 	}
-	if (bShape.left().x < 0 || bShape.right().x > m_window.getSize().x)
+	if (bShape.left().x < 0)
 	{
-		gameOver();
+
+		m_score[1]++;
+		if (m_score[1] >= 3)
+			gameOver();
+		else
+			gameStart();
+	}
+	else if (bShape.right().x > m_window.getSize().x)
+	{
+
+		m_score[0]++;
+		if (m_score[0] >= 3)
+			gameOver();
+		else
+			gameStart();
+	}
+
+	for (auto p : players())
+	{
+		auto& pShape = p->get<CRectangle>();
+		auto& pTransform = p->get<CTransform>();
+		// colisão AABB
+		if (bShape.right().x > pShape.left().x && 
+			bShape.left().x < pShape.right().x && 
+			bShape.top().y < pShape.bottom().y && 
+			bShape.bottom().y > pShape.top().y )
+		{ 
+			Vec2f relPos = bTransform.pos - pTransform.pos;
+			relPos.normalize();
+			bTransform.velocity = relPos * m_ballConfig.S;
+		}
 	}
 }
 
@@ -311,6 +370,17 @@ void Game::sRender()
 			m_window.draw(shape);
 		}
 	}
+
+	// usar o mesmo m_text para desenhar várias coisas.
+	m_text.setString(std::to_string(m_score[0]));
+	m_text.setPosition(Vec2f(m_window.getSize().x / 2 - 40, 20.0f));
+	m_window.draw(m_text);
+
+	m_text.setPosition(Vec2f(m_window.getSize().x / 2 + 40, 20.0f));
+	m_text.setString(std::to_string(m_score[1]));
+	m_window.draw(m_text);
+
+
 	m_window.display();
 }
 
@@ -334,6 +404,7 @@ void Game::run()
 			sMovement();
 		}
 		sUserInput();
+
 		sRender();
 		sGUI();	
 	}

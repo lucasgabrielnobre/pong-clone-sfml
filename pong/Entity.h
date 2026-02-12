@@ -8,7 +8,6 @@ class EntityManager;
 // Vai ser usado para verificar se essa entidade tem ou não cada um desses componentes
 using ComponentTuple = std::tuple<
 	CTransform,
-	CCollision,
 	CCircle,
 	CRectangle,
 	CInput
