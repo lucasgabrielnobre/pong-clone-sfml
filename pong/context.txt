@@ -5,6 +5,11 @@ três cenas:
 	tela de gameplay
 	tela de vencedor com botões de menu e recomeçar
 
+a bola deve rebater de modo que quanto mais em cima do player mais em cima a bola vai,
+e do mesmo modo em baixo.
+ 
+a cada batida aumenta a velocidade.
+
 Window W H Fullscren(bool)
 Player W, H, CW, CH, FR, FG, FB, OR, OG, OB, OT, S
 Ball   SR, CR, FR, FG, FB, OR, OG, OB, OT, V, IS

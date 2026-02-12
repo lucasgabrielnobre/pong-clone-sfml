@@ -44,3 +44,26 @@ CCircle::CCircle(float radius, size_t points, const sf::Color& fill, const sf::C
 	shape.setOutlineThickness(thickness);
 	shape.setOrigin({ radius / 2.0f, radius / 2.0f });
 }
+
+Vec2f CCircle::top() const
+{
+	Vec2f p(shape.getPosition().x, shape.getPosition().y - shape.getRadius());
+	return p;
+}
+
+Vec2f CCircle::bottom() const
+{
+	Vec2f p(shape.getPosition().x, shape.getPosition().y + shape.getRadius());
+	return p;
+}
+
+Vec2f CCircle::left() const
+{
+	Vec2f p(shape.getPosition().x - shape.getRadius(), shape.getPosition().y);
+	return p;
+}
+Vec2f CCircle::right() const
+{
+	Vec2f p(shape.getPosition().x + shape.getRadius(), shape.getPosition().y);
+	return p;
+}

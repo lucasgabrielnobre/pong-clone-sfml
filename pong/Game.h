@@ -5,9 +5,18 @@
 struct PlayerConfig { int W, H, CW, CH, FR, FG, FB, OR, OG, OB, OT; float S; };
 struct BallConfig   { int SR, CR, FR, FG, FB, OR, OG, OB, OT, V; float S; };
 
+
 class Game
 {
 public:
+	enum GameState
+	{
+		MainMenu,
+		Gameplay,
+		Paused,
+		GameOver
+	};
+
 	sf::RenderWindow m_window;
 	EntityManager    m_entities;
 	sf::Font         m_font;
@@ -17,7 +26,8 @@ public:
 	sf::Clock		 m_deltaClock;
 	int				 m_score[2] = { 0, 0 };
 	int				 m_currentFrame = 0;
-	bool			 m_paused = false;
+	int              m_gameState = Gameplay;
+
 
 
 	Game(const std::string& config);
@@ -25,12 +35,12 @@ public:
 	std::vector<std::shared_ptr<Entity>> players();
 	std::shared_ptr<Entity> ball();
 	void init(const std::string& config);
-	void setPaused() { m_paused = false; }
 
 	void spawnPlayers(bool isTwoPlayers);
 	void spawnBall();
 
 	void gameStart();
+	void gameOver();
 
 	void sMovement();
 	void sUserInput();

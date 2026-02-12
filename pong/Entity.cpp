@@ -7,7 +7,7 @@ Entity::Entity(size_t id, const std::string& tag)
 
 Entity::~Entity()
 {
-	std::cout << m_id << ": " << m_tag << std::endl;
+	//std::cout << m_id << ": " << m_tag << std::endl;
 }
 
 size_t Entity::id() const

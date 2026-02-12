@@ -35,6 +35,10 @@ public:
 	sf::CircleShape shape;
 	CCircle() = default;
 	CCircle(float radius, size_t points,const sf::Color& fill, const sf::Color& outline, float thickness);
+	Vec2f top() const;
+	Vec2f right() const;
+	Vec2f bottom() const;
+	Vec2f left() const;
 };
 class CCollision : public Component
 {

@@ -2,7 +2,6 @@
 #include <iostream>
 #include <fstream>
 
-
 Game::Game(const std::string& config) :
 	m_text(m_font, "default", 24)
 {
@@ -129,12 +128,25 @@ void Game::spawnBall()
 	sf::Color fill((uint8_t)bC.FR, (uint8_t)bC.FG, (uint8_t)bC.FB);
 	sf::Color out((uint8_t)bC.OR, (uint8_t)bC.OG, (uint8_t)bC.OB);
 	b->add<CCircle>((float)bC.SR, (size_t)bC.V, fill, out,(float)bC.OT);
+	b->get<CCircle>().shape.setPosition(center);
 }
 
 void Game::gameStart()
 {
+	m_gameState = Gameplay;
 	spawnPlayers(false); // true => two players
 	spawnBall();
+}
+
+void Game::gameOver()
+{
+	m_gameState = Game::GameOver;
+
+	ball()->destroy();
+	for (auto p : players())
+	{
+		p->destroy();
+	}
 }
 
 void Game::sMovement()
@@ -207,27 +219,30 @@ void Game::sUserInput()
 {
 	while (auto event = m_window.pollEvent())
 	{
-		/* 
+		if (event->is<sf::Event::Closed>())
+		{
+			std::exit(0);
+		}
+
+		if (const auto* keyPressed = event->getIf<sf::Event::KeyPressed>())
+		{
+			if (keyPressed->scancode == sf::Keyboard::Scancode::P)
+				m_gameState = m_gameState == Gameplay ? Paused : Gameplay;
+		}
+
+		if (m_gameState != Gameplay)
+			return;
+
+		/*
 			front(): pega o primeiro do vector.
 			back() : pega o útlimo.
-			Se tiver dois players, os inputs funcionarão como Up e Down para 
-			o player dois e W e S para o player um.
-			Se tiver apenas um player, playerOne = playerTwo,
-			fazendo com que ambos W e S e Up e Down funcionem
-			como input para o player.
 		*/
-		
 		std::shared_ptr<Entity> playerOne = players().front();
 		std::shared_ptr<Entity> playerTwo;
 		if (players().back()->get<CInput>().exits)
 			playerTwo = players().back();
 		else
 			playerTwo = playerOne;
-
-		if (event->is<sf::Event::Closed>())
-		{
-			std::exit(0);
-		}
 
 		if (const auto* keyPressed = event->getIf<sf::Event::KeyPressed>())
 		{
@@ -251,7 +266,6 @@ void Game::sUserInput()
 			if (keyReleased->scancode == sf::Keyboard::Scancode::Down)
 				playerTwo->get<CInput>().down = false;
 		}
-
 	}
 }
 
@@ -261,7 +275,19 @@ void Game::sGUI()
 
 void Game::sCollision()
 {
+	auto& bTransform = ball()->get<CTransform>();
+	auto& bShape = ball()->get<CCircle>();
+	if (bShape.top().y < 0 || bShape.bottom().y > m_window.getSize().y)
+	{
+		bTransform.velocity.y *= -1.0f;
+	}
+	if (bShape.left().x < 0 || bShape.right().x > m_window.getSize().x)
+	{
+		gameOver();
+	}
 }
+
+
 
 void Game::sRender()
 {
@@ -302,8 +328,9 @@ void Game::run()
 	{
 		m_currentFrame++;
 		m_entities.update();
-		if (!m_paused)
+		if (m_gameState == Game::Gameplay)
 		{
+			sCollision();
 			sMovement();
 		}
 		sUserInput();
