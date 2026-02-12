@@ -1,7 +1,11 @@
 #include "Game.h"
 #include <iostream>
 #include <fstream>
-
+#include <algorithm>
+int scoreMax = 5;
+float bSpeedMult = 1.0f;
+const float OFFSET_PLAYERS = 150.0f;
+const float OFFSET_SCORE = 40.0f;
 Game::Game(const std::string& config) :
 	m_text(m_font, "default", 24)
 {
@@ -60,7 +64,6 @@ void Game::init(const std::string& config)
 				std::exit(-1);
 		
 			m_text.setCharacterSize(textSize);
-			std::cout << fR << fB << fG << std::endl;
 			m_text.setFillColor(sf::Color((uint8_t)fR, (uint8_t)fB, (uint8_t)fG));
 		}
 		if (header == "Player")
@@ -105,7 +108,7 @@ void Game::spawnPlayers(bool isTwoPlayers)
 	
 	std::shared_ptr<Entity> players[] = { m_entities.addEntity("player"), m_entities.addEntity("player") };
 	
-	Vec2f player1Pos(200.0f, m_window.getSize().y / 2.0f);
+	Vec2f player1Pos(OFFSET_PLAYERS, m_window.getSize().y / 2.0f);
 	Vec2f player2Pos(m_window.getSize().x - player1Pos.x, m_window.getSize().y - player1Pos.y);
 
 	players[0]->add<CTransform>(player1Pos, Vec2f(0.0f, 0.0f), 0.0f);
@@ -153,7 +156,7 @@ void Game::spawnBall()
 void Game::gameStart()
 {
 	m_gameState = Gameplay;
-
+	bSpeedMult = 1.0f;
 	if (!players().empty() && ball()->isAlive())
 	{
 		for (auto p : players())
@@ -182,62 +185,38 @@ void Game::sMovement()
 {
 	for (auto& p : players())
 	{
-		auto& input = p->get<CInput>();
-		auto& rect = p->get<CRectangle>();
+		auto& input     = p->get<CInput>();
+		auto& rect      = p->get<CRectangle>();
 		auto& transform = p->get<CTransform>();
+		float movement  = 0.0f;
 		if (input.exits) // se é player
-		{
-			float movement = (float)(input.down - input.up) * m_playerConfig.S;
-			
-			if (movement < 0) // para cima
-			{
-				if (rect.top().y + movement < 0) // se passar do topo da tela
-				{
-					transform.pos = Vec2f(transform.pos.x, rect.shape.getSize().y / 2);
-					movement = 0;
-				}
-			}
-			else // para baixo
-			{
-				if (rect.bottom().y + movement > m_window.getSize().y) // se passar do fim da tela
-				{
-					transform.pos = Vec2f(transform.pos.x, m_window.getSize().y - rect.shape.getSize().y / 2);
-					movement = 0;
-				}
-			}
-			transform.velocity.y = movement;
-		}
-		else // se é bot
+			movement = (float)(input.down - input.up) * m_playerConfig.S;
+		else             // se é bot
 		{    
-			auto ballT = ball()->get<CTransform>();
-			if (ballT.pos.y > transform.pos.y) // se a bola tiver para baixo do bot
+			auto& ballT = ball()->get<CTransform>();
+			movement = std::min(std::min(std::abs(ballT.pos.y - transform.pos.y), m_playerConfig.S), m_playerConfig.S);
+			if (ballT.pos.y < transform.pos.y)
+					movement *= -1.0f;
+		}
+
+		if (movement < 0.0f) // para cima
+		{
+			if (rect.top().y + movement < 0) // se passar do topo da tela
 			{
-				if (std::abs(ballT.pos.y - transform.pos.y) > m_playerConfig.S)
-				{
-					transform.velocity.y = m_playerConfig.S;
-				}
-				else
-				{
-					transform.velocity.y = std::abs(ballT.pos.y - transform.pos.y);
-				}
+				transform.pos = Vec2f(transform.pos.x, rect.shape.getSize().y / 2);
+				movement = 0.0f;
 			}
-			else if (ballT.pos.y < transform.pos.y) // se tiver para cima
+		}
+		else // para baixo
+		{
+			if (rect.bottom().y + movement > m_window.getSize().y) // se passar do fim da tela
 			{
-				if (std::abs(ballT.pos.y - transform.pos.y) > m_playerConfig.S)
-				{
-					transform.velocity.y = -m_playerConfig.S;
-				}
-				else
-				{
-					transform.velocity.y = -std::abs(ballT.pos.y - transform.pos.y);
-				}
-			}
-			else
-			{
-				transform.velocity.y = 0;
+				transform.pos = Vec2f(transform.pos.x, m_window.getSize().y - rect.shape.getSize().y / 2);
+				movement = 0.0f;
 			}
 		}
 
+		transform.velocity.y = movement;
 		transform.pos += transform.velocity;
 	}
 	auto& ballT = ball()->get<CTransform>();
@@ -312,9 +291,8 @@ void Game::sCollision()
 	}
 	if (bShape.left().x < 0)
 	{
-
 		m_score[1]++;
-		if (m_score[1] >= 3)
+		if (m_score[1] >= scoreMax)
 			gameOver();
 		else
 			gameStart();
@@ -323,7 +301,7 @@ void Game::sCollision()
 	{
 
 		m_score[0]++;
-		if (m_score[0] >= 3)
+		if (m_score[0] >= scoreMax)
 			gameOver();
 		else
 			gameStart();
@@ -333,20 +311,25 @@ void Game::sCollision()
 	{
 		auto& pShape = p->get<CRectangle>();
 		auto& pTransform = p->get<CTransform>();
-		// colisão AABB
-		if (bShape.right().x > pShape.left().x && 
-			bShape.left().x < pShape.right().x && 
-			bShape.top().y < pShape.bottom().y && 
-			bShape.bottom().y > pShape.top().y )
+		float pDiagonal = 0;
+
+		Vec2f relPos = bTransform.pos - pTransform.pos;
+		// colisão de circulo com retangulo
+		// Achar o ponto mais próximo do circulo
+		Vec2f bCenter = bTransform.pos;
+		Vec2f closestPoint;
+		closestPoint.x = std::max(pShape.left().x, std::min(bTransform.pos.x, pShape.right().x));
+		closestPoint.y = std::max(pShape.top().y, std::min(bTransform.pos.y, pShape.bottom().y));
+		
+		
+		if (closestPoint.dist(bTransform.pos) < m_ballConfig.SR)
 		{ 
-			Vec2f relPos = bTransform.pos - pTransform.pos;
+			bSpeedMult *= 1.2f;
 			relPos.normalize();
-			bTransform.velocity = relPos * m_ballConfig.S;
+			bTransform.velocity = relPos * m_ballConfig.S * bSpeedMult;
 		}
 	}
 }
-
-
 
 void Game::sRender()
 {
@@ -371,12 +354,14 @@ void Game::sRender()
 		}
 	}
 
-	// usar o mesmo m_text para desenhar várias coisas.
+	// usar o mesmo m_text para desenhar várias textos
+
+	// SCORE
 	m_text.setString(std::to_string(m_score[0]));
-	m_text.setPosition(Vec2f(m_window.getSize().x / 2 - 40, 20.0f));
+	m_text.setPosition(Vec2f(m_window.getSize().x / 2.0f - 40.0f, 20.0f));
 	m_window.draw(m_text);
 
-	m_text.setPosition(Vec2f(m_window.getSize().x / 2 + 40, 20.0f));
+	m_text.setPosition(Vec2f(m_window.getSize().x / 2.0f + 40.0f, 20.0f));
 	m_text.setString(std::to_string(m_score[1]));
 	m_window.draw(m_text);
 

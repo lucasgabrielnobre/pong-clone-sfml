@@ -42,7 +42,7 @@ CCircle::CCircle(float radius, size_t points, const sf::Color& fill, const sf::C
 	shape.setFillColor(fill);
 	shape.setOutlineColor(outline);
 	shape.setOutlineThickness(thickness);
-	shape.setOrigin({ radius / 2.0f, radius / 2.0f });
+	shape.setOrigin({ radius, radius });
 }
 
 Vec2f CCircle::top() const
