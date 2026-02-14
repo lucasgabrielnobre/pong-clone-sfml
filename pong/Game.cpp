@@ -200,7 +200,6 @@ void Game::gameContinue()
 	spawnBall();
 }
 
-
 void Game::gameOver()
 {
 	m_gameState = Game::GameOver;
@@ -407,9 +406,6 @@ void Game::sRender()
 	}
 
 	// usar o mesmo m_text para desenhar várias textos
-
-	
-
 	Vec2f center;
 	Vec2f localBounds;
 	std::string gameOverText[2];
