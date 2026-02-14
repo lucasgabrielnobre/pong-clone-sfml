@@ -2,12 +2,13 @@
 #include <iostream>
 #include <fstream>
 #include <algorithm>
-int scoreMax = 5;
+#include <math.h>
+int scoreMax = 1;
 float bSpeedMult = 1.0f;
 const float OFFSET_PLAYERS = 150.0f;
 const float OFFSET_SCORE = 40.0f;
-Game::Game(const std::string& config) :
-	m_text(m_font, "default", 24)
+Game::Game(const std::string& config) 
+	: m_text(m_font, "default", 24)
 {
 	init(config);
 	gameStart();
@@ -71,8 +72,6 @@ void Game::init(const std::string& config)
 			PlayerConfig temp{};
 			fin >> temp.W;
 			fin >> temp.H;
-			fin >> temp.CW;
-			fin >> temp.CH;
 			fin >> temp.FR;
 			fin >> temp.FG;
 			fin >> temp.FB;
@@ -87,7 +86,6 @@ void Game::init(const std::string& config)
 		{
 			BallConfig temp{};
 			fin >> temp.SR;
-			fin >> temp.CR;
 			fin >> temp.FR;
 			fin >> temp.FG;
 			fin >> temp.FB;
@@ -220,6 +218,7 @@ void Game::sMovement()
 		transform.pos += transform.velocity;
 	}
 	auto& ballT = ball()->get<CTransform>();
+
 	ballT.pos += ballT.velocity;
 }
 
@@ -236,6 +235,8 @@ void Game::sUserInput()
 		{
 			if (keyPressed->scancode == sf::Keyboard::Scancode::P)
 				m_gameState = m_gameState == Gameplay ? Paused : Gameplay;
+			if (keyPressed->scancode == sf::Keyboard::Scancode::Escape)
+				std::exit(0);
 		}
 
 		if (m_gameState != Gameplay)
@@ -285,7 +286,7 @@ void Game::sCollision()
 {
 	auto& bTransform = ball()->get<CTransform>();
 	auto& bShape = ball()->get<CCircle>();
-	if (bShape.top().y < 0 || bShape.bottom().y > m_window.getSize().y)
+	if (bShape.top().y + bTransform.velocity.y < 0 || bShape.bottom().y + bTransform.velocity.y > m_window.getSize().y)
 	{
 		bTransform.velocity.y *= -1.0f;
 	}
@@ -357,13 +358,39 @@ void Game::sRender()
 	// usar o mesmo m_text para desenhar várias textos
 
 	// SCORE
-	m_text.setString(std::to_string(m_score[0]));
-	m_text.setPosition(Vec2f(m_window.getSize().x / 2.0f - 40.0f, 20.0f));
-	m_window.draw(m_text);
+	switch (m_gameState)
+	{
+		case Game::Gameplay:
+			m_text.setString(std::to_string(m_score[0]));
+			m_text.setPosition(Vec2f(m_window.getSize().x / 2.0f - OFFSET_SCORE, 20.0f));
+			m_window.draw(m_text);
 
-	m_text.setPosition(Vec2f(m_window.getSize().x / 2.0f + 40.0f, 20.0f));
-	m_text.setString(std::to_string(m_score[1]));
-	m_window.draw(m_text);
+			m_text.setPosition(Vec2f(m_window.getSize().x / 2.0f + OFFSET_SCORE, 20.0f));
+			m_text.setString(std::to_string(m_score[1]));
+			m_window.draw(m_text);
+			break;
+		case Game::GameOver:
+			const char* gameOverText[2] = { m_score[0] > m_score[1] ? "Player 1 wins!" : "Player 2 wins!", 
+										  "Press R to play again, press M to go the main menu."  };
+
+			m_text.setString(gameOverText[0]);
+			m_text.setCharacterSize(m_text.getCharacterSize() * 2);
+			Vec2f center = m_text.getGlobalBounds().size / 2.0f;
+			Vec2f localBounds = center + m_text.getLocalBounds().position;
+			m_text.setOrigin(Vec2f(std::roundf(localBounds.x), std::roundf(localBounds.y) + 40.0f));
+			m_text.setPosition(Vec2f(m_window.getSize().x / 2.0f, m_window.getSize().y / 2.0f));
+			m_window.draw(m_text);
+			m_text.setCharacterSize( m_text.getCharacterSize() / 2 );
+
+			m_text.setString(gameOverText[1]);
+			m_text.setCharacterSize(m_text.getCharacterSize() / 2);
+			center = m_text.getGlobalBounds().size / 2.0f;
+			localBounds = center + m_text.getLocalBounds().position;
+			m_text.setOrigin(Vec2f(std::roundf(localBounds.x), std::roundf(localBounds.y) - 40.0f));
+			m_window.draw(m_text);
+			m_text.setCharacterSize(m_text.getCharacterSize() * 2);
+	}
+
 
 
 	m_window.display();
