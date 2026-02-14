@@ -1,17 +1,4 @@
-Pong
-
-três cenas: 
-	inicial com botões de single e multiplayer
-	tela de gameplay
-	tela de vencedor com botões de menu e recomeçar
-
-a cada batida aumenta a velocidade.
-
 Window W, H, FPS, Fullscren(bool)
-Player W, H, CW, CH, FR, FG, FB, OR, OG, OB, OT, S
-Ball   SR, CR, FR, FG, FB, OR, OG, OB, OT, V, IS
-
-TODO:
-	
-Tela Inicial
-Tela de Game Over
+Player W, H, FR, FG, FB, OR, OG, OB, OT, S
+Ball   SR, FR, FG, FB, OR, OG, OB, OT, V, IS
+Score  MS

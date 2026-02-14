@@ -3,15 +3,21 @@
 #include <fstream>
 #include <algorithm>
 #include <math.h>
-int scoreMax = 1;
-float bSpeedMult = 1.0f;
+
 const float OFFSET_PLAYERS = 150.0f;
 const float OFFSET_SCORE = 40.0f;
-bool isTwoPlayer = false;
+
+void centerText(sf::Text& text)
+{
+	Vec2f center = text.getGlobalBounds().size / 2.0f;
+	Vec2f localBounds = center + text.getLocalBounds().position;
+	text.setOrigin(Vec2f(std::roundf(localBounds.x), std::roundf(localBounds.y)));
+}
 
 Game::Game(const std::string& config) 
 	: m_text(m_font, "default", 24)
 {
+	srand((unsigned int)time(0)); // garante a aleatoridade do rand() 
 	init(config);
 	m_gameState = Game::MainMenu;
 }
@@ -99,6 +105,10 @@ void Game::init(const std::string& config)
 			fin >> temp.S;
 			m_ballConfig = temp;
 		}
+		if (header == "Score")
+		{
+			fin >> m_scoreMax;
+		}
 	}
 }
 
@@ -138,7 +148,6 @@ void Game::spawnBall()
 
 	// A bola pode começar voando em quatro direções ( graus: 45, 135, 225, 315 )
 	// para tanto, usa-se de vetores (1,1) , (-1,1), (1,-1), (-1,1), correspondente aos ângulos.
-	srand((unsigned int)time(0)); // garante a aleatoridade do rand()
 	
 	Vec2f initialVelocity((float)randMinMax(0, 1), (float)randMinMax(0,1));
 	initialVelocity.x = initialVelocity.x == 0.0f ? -1.0f : 1.0f;
@@ -158,11 +167,38 @@ void Game::gameStart()
 	m_score[0] = 0; m_score[1] = 0;
 
 	m_gameState = Gameplay;
-	bSpeedMult = 1.0f;
+	m_bSpeedMult = 1.0f;
 
-	spawnPlayers(isTwoPlayer);
+	if (!players().empty() && ball()->isAlive())
+	{
+		ball()->destroy();
+		for (auto p : players())
+		{
+			p->destroy();
+		}
+	}
+
+	spawnPlayers(m_isTwoPlayer);
 	spawnBall();
 }
+
+void Game::gameContinue()
+{
+	m_bSpeedMult = 1.0f;
+
+	if (!players().empty() && ball()->isAlive())
+	{
+		ball()->destroy();
+		for (auto p : players())
+		{
+			p->destroy();
+		}
+	}
+
+	spawnPlayers(m_isTwoPlayer);
+	spawnBall();
+}
+
 
 void Game::gameOver()
 {
@@ -237,13 +273,13 @@ void Game::sUserInput()
 				m_gameState = Game::MainMenu;
 			if (keyPressed->scancode == sf::Keyboard::Scancode::Num1 && m_gameState == Game::MainMenu)
 			{
-				isTwoPlayer = false;
+				m_isTwoPlayer = false;
 				gameStart();
 			}
 				
 			if (keyPressed->scancode == sf::Keyboard::Scancode::Num2 && m_gameState == Game::MainMenu)
 			{
-				isTwoPlayer = true;
+				m_isTwoPlayer = true;
 				gameStart();
 			}
 			if (keyPressed->scancode == sf::Keyboard::Scancode::Escape)
@@ -307,19 +343,18 @@ void Game::sCollision()
 	if (bShape.left().x < 0)
 	{
 		m_score[1]++;
-		if (m_score[1] >= scoreMax)
+		if (m_score[1] >= m_scoreMax)
 			gameOver();
 		else
-			gameStart();
+			gameContinue();
 	}
 	else if (bShape.right().x > m_window.getSize().x)
 	{
-
 		m_score[0]++;
-		if (m_score[0] >= scoreMax)
+		if (m_score[0] >= m_scoreMax)
 			gameOver();
 		else
-			gameStart();
+			gameContinue();
 	}
 
 	for (auto p : players())
@@ -339,9 +374,9 @@ void Game::sCollision()
 		
 		if (closestPoint.dist(bTransform.pos) < m_ballConfig.SR)
 		{ 
-			bSpeedMult *= 1.2f;
+			m_bSpeedMult *= std::min(m_bSpeedMult * 1.1f, 2.0f);
 			relPos.normalize();
-			bTransform.velocity = relPos * m_ballConfig.S * bSpeedMult;
+			bTransform.velocity = relPos * m_ballConfig.S * m_bSpeedMult;
 		}
 	}
 }
@@ -371,6 +406,8 @@ void Game::sRender()
 
 	// usar o mesmo m_text para desenhar várias textos
 
+	
+
 	Vec2f center;
 	Vec2f localBounds;
 	std::string gameOverText[2];
@@ -386,46 +423,37 @@ void Game::sRender()
 			m_text.setString(std::to_string(m_score[1]));
 			m_window.draw(m_text);
 			break;
+
 		case Game::GameOver:
 			gameOverText[0] = m_score[0] > m_score[1] ? "Player 1 wins!" : "Player 2 wins!";
 			gameOverText[1] = "Press R to play again, press M to go the main menu.";
 			m_text.setString(gameOverText[0]);
 			m_text.setCharacterSize(m_text.getCharacterSize() * 2);
-			center = m_text.getGlobalBounds().size / 2.0f;
-			localBounds = center + m_text.getLocalBounds().position;
-			m_text.setOrigin(Vec2f(std::roundf(localBounds.x), std::roundf(localBounds.y)));
+			centerText(m_text);
 			m_text.setPosition(Vec2f(m_window.getSize().x / 2.0f, m_window.getSize().y / 2.0f - 40.0f));
 			m_window.draw(m_text);
 			m_text.setCharacterSize( m_text.getCharacterSize() / 2 );
-
 			m_text.setString(gameOverText[1]);
 			m_text.setCharacterSize(m_text.getCharacterSize() / 2);
-			center = m_text.getGlobalBounds().size / 2.0f;
-			localBounds = center + m_text.getLocalBounds().position;
-			m_text.setOrigin(Vec2f(std::roundf(localBounds.x), std::roundf(localBounds.y)));
+			centerText(m_text);
 			m_text.setPosition(Vec2f(m_window.getSize().x / 2.0f, m_window.getSize().y / 2.0f + 40.0f));
 			m_window.draw(m_text);
 			m_text.setCharacterSize(m_text.getCharacterSize() * 2);
 			m_text.setOrigin(Vec2f(0.0f, 0.0f));
 			break;
+
 		case Game::MainMenu:
 			m_text.setString("Pong Clone");
 			m_text.setCharacterSize(m_text.getCharacterSize() * 2);
-			center = m_text.getGlobalBounds().size / 2.0f;
-			localBounds = center + m_text.getLocalBounds().position;
-			m_text.setOrigin(Vec2f(std::roundf(localBounds.x), std::roundf(localBounds.y)));
+			centerText(m_text);
 			m_text.setPosition(Vec2f(m_window.getSize().x / 2.0f, m_window.getSize().y / 2.0f - 160.0f));
 			m_window.draw(m_text);
 			m_text.setCharacterSize(m_text.getCharacterSize() / 2);
 
 			m_text.setString("Press 1 to play single player, \n Press 2 to play multiplayer.");
-			center = m_text.getGlobalBounds().size / 2.0f;
-			localBounds = center + m_text.getLocalBounds().position;
-			m_text.setOrigin(Vec2f(std::roundf(localBounds.x), std::roundf(localBounds.y)));
+			centerText(m_text);
 			m_text.setPosition(Vec2f(m_window.getSize().x / 2.0f, m_window.getSize().y / 2.0f + 80.0f));
 			m_window.draw(m_text);
-
-
 			m_text.setOrigin(Vec2f(0.0f, 0.0f));
 			break;
 	}
@@ -445,7 +473,7 @@ std::shared_ptr<Entity> Game::ball()
 }
 void Game::run()
 {
-	while (true)
+	while (m_window.isOpen())
 	{
 		m_currentFrame++;
 		m_entities.update();

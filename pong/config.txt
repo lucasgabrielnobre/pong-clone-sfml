@@ -2,3 +2,4 @@ Window 1280 720 60 0
 Font fonts\font.ttf 48 255 255 255
 Player 40 180 255 255 255 0 0 0 0 10
 Ball 24 255 255 255 0 0 0 0 32 8
+Score 3

@@ -24,11 +24,12 @@ public:
 	PlayerConfig     m_playerConfig;
 	BallConfig		 m_ballConfig;
 	sf::Clock		 m_deltaClock;
-	int				 m_score[2] = { 0, 0 };
+	int				 m_score[2]     = { 0, 0 };
 	int				 m_currentFrame = 0;
-	int              m_gameState = Gameplay;
-
-
+	int              m_gameState    = Gameplay;
+	float		     m_bSpeedMult   = 1.0f;
+	bool             m_isTwoPlayer  = false;
+	int				 m_scoreMax     =    3;
 
 	Game(const std::string& config);
 
@@ -40,6 +41,7 @@ public:
 	void spawnBall();
 
 	void gameStart();
+	void gameContinue();
 	void gameOver();
 
 	void sMovement();
