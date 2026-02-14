@@ -18,6 +18,7 @@ public:
 	};
 
 	sf::RenderWindow m_window;
+	sf::View m_view;
 	EntityManager    m_entities;
 	sf::Font         m_font;
 	sf::Text         m_text;

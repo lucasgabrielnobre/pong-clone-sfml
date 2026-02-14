@@ -7,7 +7,7 @@
 const float OFFSET_PLAYERS = 150.0f;
 const float OFFSET_SCORE = 40.0f;
 
-void centerText(sf::Text& text)
+static void centerText(sf::Text& text)
 {
 	Vec2f center = text.getGlobalBounds().size / 2.0f;
 	Vec2f localBounds = center + text.getLocalBounds().position;
@@ -110,6 +110,7 @@ void Game::init(const std::string& config)
 			fin >> m_scoreMax;
 		}
 	}
+	m_view = sf::View(sf::Vector2f(m_window.getSize().x / 2.0f, m_window.getSize().y / 2.0f), sf::Vector2f(m_window.getSize()));
 }
 
 void Game::spawnPlayers(bool isTwoPlayers)
@@ -118,8 +119,8 @@ void Game::spawnPlayers(bool isTwoPlayers)
 	
 	std::shared_ptr<Entity> players[] = { m_entities.addEntity("player"), m_entities.addEntity("player") };
 	
-	Vec2f player1Pos(OFFSET_PLAYERS, m_window.getSize().y / 2.0f);
-	Vec2f player2Pos(m_window.getSize().x - player1Pos.x, m_window.getSize().y - player1Pos.y);
+	Vec2f player1Pos(OFFSET_PLAYERS, m_view.getSize().y / 2.0f);
+	Vec2f player2Pos(m_view.getSize().x - player1Pos.x, m_view.getSize().y - player1Pos.y);
 
 	players[0]->add<CTransform>(player1Pos, Vec2f(0.0f, 0.0f), 0.0f);
 	players[0]->add<CInput>();
@@ -144,7 +145,7 @@ void Game::spawnBall()
 	auto b = m_entities.addEntity("ball");
 
 
-	Vec2f center(m_window.getSize().x / 2.0f, m_window.getSize().y / 2.0f);
+	Vec2f center(m_view.getSize().x / 2.0f, m_view.getSize().y / 2.0f);
 
 	// A bola pode começar voando em quatro direções ( graus: 45, 135, 225, 315 )
 	// para tanto, usa-se de vetores (1,1) , (-1,1), (1,-1), (-1,1), correspondente aos ângulos.
@@ -239,9 +240,9 @@ void Game::sMovement()
 		}
 		else // para baixo
 		{
-			if (rect.bottom().y + movement > m_window.getSize().y) // se passar do fim da tela
+			if (rect.bottom().y + movement > m_view.getSize().y) // se passar do fim da tela
 			{
-				transform.pos = Vec2f(transform.pos.x, m_window.getSize().y - rect.shape.getSize().y / 2);
+				transform.pos = Vec2f(transform.pos.x, m_view.getSize().y - rect.shape.getSize().y / 2);
 				movement = 0.0f;
 			}
 		}
@@ -336,7 +337,7 @@ void Game::sCollision()
 {
 	auto& bTransform = ball()->get<CTransform>();
 	auto& bShape = ball()->get<CCircle>();
-	if (bShape.top().y + bTransform.velocity.y < 0 || bShape.bottom().y + bTransform.velocity.y > m_window.getSize().y)
+	if (bShape.top().y + bTransform.velocity.y < 0 || bShape.bottom().y + bTransform.velocity.y > m_view.getSize().y)
 	{
 		bTransform.velocity.y *= -1.0f;
 	}
@@ -348,7 +349,7 @@ void Game::sCollision()
 		else
 			gameContinue();
 	}
-	else if (bShape.right().x > m_window.getSize().x)
+	else if (bShape.right().x > m_view.getSize().x)
 	{
 		m_score[0]++;
 		if (m_score[0] >= m_scoreMax)
@@ -386,6 +387,7 @@ void Game::sRender()
 	if (!m_window.isOpen()) { return; }
 
 	m_window.clear();
+	m_window.setView(m_view);
 
 	for (auto& e : m_entities.getEntities())
 	{
@@ -413,13 +415,28 @@ void Game::sRender()
 	std::string gameOverText[2];
 	switch (m_gameState)
 	{
+		case Game::MainMenu:
+			m_text.setString("Pong Clone");
+			m_text.setCharacterSize(m_text.getCharacterSize() * 2);
+			centerText(m_text);
+			m_text.setPosition(Vec2f(m_view.getSize().x / 2.0f, m_view.getSize().y / 2.0f - 80.0f));
+			m_window.draw(m_text);
+			m_text.setCharacterSize(m_text.getCharacterSize() / 2);
+
+			m_text.setString("Press 1 to play single player, \n Press 2 to play multiplayer.");
+			centerText(m_text);
+			m_text.setPosition(Vec2f(m_view.getSize().x / 2.0f, m_view.getSize().y / 2.0f + 80.0f));
+			m_window.draw(m_text);
+			m_text.setOrigin(Vec2f(0.0f, 0.0f));
+			break;
+
 		case Game::Gameplay:
 			// SCORE
 			m_text.setString(std::to_string(m_score[0]));
-			m_text.setPosition(Vec2f(m_window.getSize().x / 2.0f - OFFSET_SCORE, 20.0f));
+			m_text.setPosition(Vec2f(m_view.getSize().x / 2.0f - OFFSET_SCORE, 20.0f));
 			m_window.draw(m_text);
 
-			m_text.setPosition(Vec2f(m_window.getSize().x / 2.0f + OFFSET_SCORE, 20.0f));
+			m_text.setPosition(Vec2f(m_view.getSize().x / 2.0f + OFFSET_SCORE, 20.0f));
 			m_text.setString(std::to_string(m_score[1]));
 			m_window.draw(m_text);
 			break;
@@ -430,30 +447,15 @@ void Game::sRender()
 			m_text.setString(gameOverText[0]);
 			m_text.setCharacterSize(m_text.getCharacterSize() * 2);
 			centerText(m_text);
-			m_text.setPosition(Vec2f(m_window.getSize().x / 2.0f, m_window.getSize().y / 2.0f - 40.0f));
+			m_text.setPosition(Vec2f(m_view.getSize().x / 2.0f, m_view.getSize().y / 2.0f - 40.0f));
 			m_window.draw(m_text);
 			m_text.setCharacterSize( m_text.getCharacterSize() / 2 );
 			m_text.setString(gameOverText[1]);
 			m_text.setCharacterSize(m_text.getCharacterSize() / 2);
 			centerText(m_text);
-			m_text.setPosition(Vec2f(m_window.getSize().x / 2.0f, m_window.getSize().y / 2.0f + 40.0f));
+			m_text.setPosition(Vec2f(m_view.getSize().x / 2.0f, m_view.getSize().y / 2.0f + 40.0f));
 			m_window.draw(m_text);
 			m_text.setCharacterSize(m_text.getCharacterSize() * 2);
-			m_text.setOrigin(Vec2f(0.0f, 0.0f));
-			break;
-
-		case Game::MainMenu:
-			m_text.setString("Pong Clone");
-			m_text.setCharacterSize(m_text.getCharacterSize() * 2);
-			centerText(m_text);
-			m_text.setPosition(Vec2f(m_window.getSize().x / 2.0f, m_window.getSize().y / 2.0f - 160.0f));
-			m_window.draw(m_text);
-			m_text.setCharacterSize(m_text.getCharacterSize() / 2);
-
-			m_text.setString("Press 1 to play single player, \n Press 2 to play multiplayer.");
-			centerText(m_text);
-			m_text.setPosition(Vec2f(m_window.getSize().x / 2.0f, m_window.getSize().y / 2.0f + 80.0f));
-			m_window.draw(m_text);
 			m_text.setOrigin(Vec2f(0.0f, 0.0f));
 			break;
 	}
