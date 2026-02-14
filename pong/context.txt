@@ -1,4 +1,0 @@
-Window W, H, FPS, Fullscren(bool)
-Player W, H, FR, FG, FB, OR, OG, OB, OT, S
-Ball   SR, FR, FG, FB, OR, OG, OB, OT, V, IS
-Score  MS
