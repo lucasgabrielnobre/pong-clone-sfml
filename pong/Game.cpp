@@ -7,11 +7,13 @@ int scoreMax = 1;
 float bSpeedMult = 1.0f;
 const float OFFSET_PLAYERS = 150.0f;
 const float OFFSET_SCORE = 40.0f;
+bool isTwoPlayer = false;
+
 Game::Game(const std::string& config) 
 	: m_text(m_font, "default", 24)
 {
 	init(config);
-	gameStart();
+	m_gameState = Game::MainMenu;
 }
 
 int randMinMax(int min, int max)
@@ -153,18 +155,12 @@ void Game::spawnBall()
 
 void Game::gameStart()
 {
+	m_score[0] = 0; m_score[1] = 0;
+
 	m_gameState = Gameplay;
 	bSpeedMult = 1.0f;
-	if (!players().empty() && ball()->isAlive())
-	{
-		for (auto p : players())
-		{
-			p->destroy();
-		}
-		ball()->destroy();
-	}
 
-	spawnPlayers(false); // true => two players
+	spawnPlayers(isTwoPlayer);
 	spawnBall();
 }
 
@@ -235,12 +231,30 @@ void Game::sUserInput()
 		{
 			if (keyPressed->scancode == sf::Keyboard::Scancode::P)
 				m_gameState = m_gameState == Gameplay ? Paused : Gameplay;
+			if (keyPressed->scancode == sf::Keyboard::Scancode::R && m_gameState == Game::GameOver)
+				gameStart();
+			if (keyPressed->scancode == sf::Keyboard::Scancode::M && m_gameState == Game::GameOver)
+				m_gameState = Game::MainMenu;
+			if (keyPressed->scancode == sf::Keyboard::Scancode::Num1 && m_gameState == Game::MainMenu)
+			{
+				isTwoPlayer = false;
+				gameStart();
+			}
+				
+			if (keyPressed->scancode == sf::Keyboard::Scancode::Num2 && m_gameState == Game::MainMenu)
+			{
+				isTwoPlayer = true;
+				gameStart();
+			}
 			if (keyPressed->scancode == sf::Keyboard::Scancode::Escape)
 				std::exit(0);
 		}
 
-		if (m_gameState != Gameplay)
+		if (players().empty() || m_gameState != Gameplay)
 			return;
+
+
+
 
 		/*
 			front(): pega o primeiro do vector.
@@ -357,10 +371,13 @@ void Game::sRender()
 
 	// usar o mesmo m_text para desenhar várias textos
 
-	// SCORE
+	Vec2f center;
+	Vec2f localBounds;
+	std::string gameOverText[2];
 	switch (m_gameState)
 	{
 		case Game::Gameplay:
+			// SCORE
 			m_text.setString(std::to_string(m_score[0]));
 			m_text.setPosition(Vec2f(m_window.getSize().x / 2.0f - OFFSET_SCORE, 20.0f));
 			m_window.draw(m_text);
@@ -370,15 +387,14 @@ void Game::sRender()
 			m_window.draw(m_text);
 			break;
 		case Game::GameOver:
-			const char* gameOverText[2] = { m_score[0] > m_score[1] ? "Player 1 wins!" : "Player 2 wins!", 
-										  "Press R to play again, press M to go the main menu."  };
-
+			gameOverText[0] = m_score[0] > m_score[1] ? "Player 1 wins!" : "Player 2 wins!";
+			gameOverText[1] = "Press R to play again, press M to go the main menu.";
 			m_text.setString(gameOverText[0]);
 			m_text.setCharacterSize(m_text.getCharacterSize() * 2);
-			Vec2f center = m_text.getGlobalBounds().size / 2.0f;
-			Vec2f localBounds = center + m_text.getLocalBounds().position;
-			m_text.setOrigin(Vec2f(std::roundf(localBounds.x), std::roundf(localBounds.y) + 40.0f));
-			m_text.setPosition(Vec2f(m_window.getSize().x / 2.0f, m_window.getSize().y / 2.0f));
+			center = m_text.getGlobalBounds().size / 2.0f;
+			localBounds = center + m_text.getLocalBounds().position;
+			m_text.setOrigin(Vec2f(std::roundf(localBounds.x), std::roundf(localBounds.y)));
+			m_text.setPosition(Vec2f(m_window.getSize().x / 2.0f, m_window.getSize().y / 2.0f - 40.0f));
 			m_window.draw(m_text);
 			m_text.setCharacterSize( m_text.getCharacterSize() / 2 );
 
@@ -386,9 +402,32 @@ void Game::sRender()
 			m_text.setCharacterSize(m_text.getCharacterSize() / 2);
 			center = m_text.getGlobalBounds().size / 2.0f;
 			localBounds = center + m_text.getLocalBounds().position;
-			m_text.setOrigin(Vec2f(std::roundf(localBounds.x), std::roundf(localBounds.y) - 40.0f));
+			m_text.setOrigin(Vec2f(std::roundf(localBounds.x), std::roundf(localBounds.y)));
+			m_text.setPosition(Vec2f(m_window.getSize().x / 2.0f, m_window.getSize().y / 2.0f + 40.0f));
 			m_window.draw(m_text);
 			m_text.setCharacterSize(m_text.getCharacterSize() * 2);
+			m_text.setOrigin(Vec2f(0.0f, 0.0f));
+			break;
+		case Game::MainMenu:
+			m_text.setString("Pong Clone");
+			m_text.setCharacterSize(m_text.getCharacterSize() * 2);
+			center = m_text.getGlobalBounds().size / 2.0f;
+			localBounds = center + m_text.getLocalBounds().position;
+			m_text.setOrigin(Vec2f(std::roundf(localBounds.x), std::roundf(localBounds.y)));
+			m_text.setPosition(Vec2f(m_window.getSize().x / 2.0f, m_window.getSize().y / 2.0f - 160.0f));
+			m_window.draw(m_text);
+			m_text.setCharacterSize(m_text.getCharacterSize() / 2);
+
+			m_text.setString("Press 1 to play single player, \n Press 2 to play multiplayer.");
+			center = m_text.getGlobalBounds().size / 2.0f;
+			localBounds = center + m_text.getLocalBounds().position;
+			m_text.setOrigin(Vec2f(std::roundf(localBounds.x), std::roundf(localBounds.y)));
+			m_text.setPosition(Vec2f(m_window.getSize().x / 2.0f, m_window.getSize().y / 2.0f + 80.0f));
+			m_window.draw(m_text);
+
+
+			m_text.setOrigin(Vec2f(0.0f, 0.0f));
+			break;
 	}
 
 
