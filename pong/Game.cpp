@@ -52,7 +52,7 @@ void Game::init(const std::string& config)
 			sf::State state = sf::State::Windowed;
 			if (fs == 1)
 				state = sf::State::Fullscreen;
-			m_window.create(sf::VideoMode({ wW, wH }), "Assignment 2", state);
+			m_window.create(sf::VideoMode({ wW, wH }), "Pong Clone", state);
 			m_window.setFramerateLimit(fl);
 			m_window.setKeyRepeatEnabled(false);
 
@@ -419,7 +419,7 @@ void Game::sRender()
 			m_window.draw(m_text);
 			m_text.setCharacterSize(m_text.getCharacterSize() / 2);
 
-			m_text.setString("Press 1 to play single player, \n Press 2 to play multiplayer.");
+			m_text.setString("Press 1 to play singleplayer\nPress 2 to play multiplayer");
 			centerText(m_text);
 			m_text.setPosition(Vec2f(m_view.getSize().x / 2.0f, m_view.getSize().y / 2.0f + 80.0f));
 			m_window.draw(m_text);
