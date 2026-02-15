@@ -330,6 +330,56 @@ void Game::sUserInput()
 
 void Game::sGUI()
 {
+	// usar o mesmo m_text para desenhar várias textos
+	Vec2f center;
+	Vec2f localBounds;
+	std::string gameOverText[2];
+	switch (m_gameState)
+	{
+	case Game::MainMenu:
+		m_text.setString("Pong Clone");
+		m_text.setCharacterSize(m_text.getCharacterSize() * 2);
+		centerText(m_text);
+		m_text.setPosition(Vec2f(m_view.getSize().x / 2.0f, m_view.getSize().y / 2.0f - 80.0f));
+		m_window.draw(m_text);
+		m_text.setCharacterSize(m_text.getCharacterSize() / 2);
+
+		m_text.setString("Press 1 to play singleplayer\nPress 2 to play multiplayer");
+		centerText(m_text);
+		m_text.setPosition(Vec2f(m_view.getSize().x / 2.0f, m_view.getSize().y / 2.0f + 80.0f));
+		m_window.draw(m_text);
+		m_text.setOrigin(Vec2f(0.0f, 0.0f));
+		break;
+
+	case Game::Gameplay:
+		// SCORE
+		m_text.setString(std::to_string(m_score[0]));
+		m_text.setPosition(Vec2f(m_view.getSize().x / 2.0f - OFFSET_SCORE, 20.0f));
+		m_window.draw(m_text);
+
+		m_text.setPosition(Vec2f(m_view.getSize().x / 2.0f + OFFSET_SCORE, 20.0f));
+		m_text.setString(std::to_string(m_score[1]));
+		m_window.draw(m_text);
+		break;
+
+	case Game::GameOver:
+		gameOverText[0] = m_score[0] > m_score[1] ? "Player 1 wins!" : "Player 2 wins!";
+		gameOverText[1] = "Press R to play again, press M to go the main menu.";
+		m_text.setString(gameOverText[0]);
+		m_text.setCharacterSize(m_text.getCharacterSize() * 2);
+		centerText(m_text);
+		m_text.setPosition(Vec2f(m_view.getSize().x / 2.0f, m_view.getSize().y / 2.0f - 40.0f));
+		m_window.draw(m_text);
+		m_text.setCharacterSize(m_text.getCharacterSize() / 2);
+		m_text.setString(gameOverText[1]);
+		m_text.setCharacterSize(m_text.getCharacterSize() / 2);
+		centerText(m_text);
+		m_text.setPosition(Vec2f(m_view.getSize().x / 2.0f, m_view.getSize().y / 2.0f + 40.0f));
+		m_window.draw(m_text);
+		m_text.setCharacterSize(m_text.getCharacterSize() * 2);
+		m_text.setOrigin(Vec2f(0.0f, 0.0f));
+		break;
+	}
 }
 
 void Game::sCollision()
@@ -405,59 +455,8 @@ void Game::sRender()
 		}
 	}
 
-	// usar o mesmo m_text para desenhar várias textos
-	Vec2f center;
-	Vec2f localBounds;
-	std::string gameOverText[2];
-	switch (m_gameState)
-	{
-		case Game::MainMenu:
-			m_text.setString("Pong Clone");
-			m_text.setCharacterSize(m_text.getCharacterSize() * 2);
-			centerText(m_text);
-			m_text.setPosition(Vec2f(m_view.getSize().x / 2.0f, m_view.getSize().y / 2.0f - 80.0f));
-			m_window.draw(m_text);
-			m_text.setCharacterSize(m_text.getCharacterSize() / 2);
 
-			m_text.setString("Press 1 to play singleplayer\nPress 2 to play multiplayer");
-			centerText(m_text);
-			m_text.setPosition(Vec2f(m_view.getSize().x / 2.0f, m_view.getSize().y / 2.0f + 80.0f));
-			m_window.draw(m_text);
-			m_text.setOrigin(Vec2f(0.0f, 0.0f));
-			break;
-
-		case Game::Gameplay:
-			// SCORE
-			m_text.setString(std::to_string(m_score[0]));
-			m_text.setPosition(Vec2f(m_view.getSize().x / 2.0f - OFFSET_SCORE, 20.0f));
-			m_window.draw(m_text);
-
-			m_text.setPosition(Vec2f(m_view.getSize().x / 2.0f + OFFSET_SCORE, 20.0f));
-			m_text.setString(std::to_string(m_score[1]));
-			m_window.draw(m_text);
-			break;
-
-		case Game::GameOver:
-			gameOverText[0] = m_score[0] > m_score[1] ? "Player 1 wins!" : "Player 2 wins!";
-			gameOverText[1] = "Press R to play again, press M to go the main menu.";
-			m_text.setString(gameOverText[0]);
-			m_text.setCharacterSize(m_text.getCharacterSize() * 2);
-			centerText(m_text);
-			m_text.setPosition(Vec2f(m_view.getSize().x / 2.0f, m_view.getSize().y / 2.0f - 40.0f));
-			m_window.draw(m_text);
-			m_text.setCharacterSize( m_text.getCharacterSize() / 2 );
-			m_text.setString(gameOverText[1]);
-			m_text.setCharacterSize(m_text.getCharacterSize() / 2);
-			centerText(m_text);
-			m_text.setPosition(Vec2f(m_view.getSize().x / 2.0f, m_view.getSize().y / 2.0f + 40.0f));
-			m_window.draw(m_text);
-			m_text.setCharacterSize(m_text.getCharacterSize() * 2);
-			m_text.setOrigin(Vec2f(0.0f, 0.0f));
-			break;
-	}
-
-
-
+	sGUI();
 	m_window.display();
 }
 
@@ -483,6 +482,5 @@ void Game::run()
 		sUserInput();
 
 		sRender();
-		sGUI();	
 	}
 }
