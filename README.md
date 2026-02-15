@@ -1,5 +1,4 @@
-# Pong Clone
-<h1>Clone de pong usando c++ e SFML</h1>
+# Clone de pong usando c++ e SFML
 
 <p>
     Esse jogo foi feito em c++ usando a biblioteca SFML. <br>
